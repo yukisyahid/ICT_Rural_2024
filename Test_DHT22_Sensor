@@ -1,0 +1,47 @@
+// pre processor
+#include "DHT.h" //library spesifc DHT22
+#include <Adafruit_Sensor.h> //library sensor oleh adafruit
+
+#define DHTPIN 14     // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
+
+DHT dht(DHTPIN, DHTTYPE); //memanggil fungsi dari DHT.h
+
+// setup waktu
+const int watchdog = 10000; // setup jeda waktu
+unsigned long previousMillis = millis();//state nilai positif
+
+void setup() {
+  Serial.begin(9600); //setting baud rate serial (baud rate : kecepatan dalam 1 detik dicacah seberapa banyak jumlah bit dalam satu detik)
+  Serial.println(F("DHT22 test!")); //menampilkan lewat serial (serial = cara lewat kirim, usb)
+  dht.begin(); //memulai sensor
+}
+
+
+void loop() {
+  //state menjalankan waktu setiap 10 detik
+  unsigned long currentMillis = millis(); //mengambil waktu dalam milisecond saat ini
+   if (currentMillis - previousMillis > watchdog) { //waktu sekarang dikurangi waktu sebelumnya lebih besar dari watchdog 
+      previousMillis = currentMillis; //memberi nilai waktu sebelumnya menjadi waktu saat ini
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)  
+  float h = dht.readHumidity();//membaca nilai humidity
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();//membaca nilai temperature
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t)) { //jika h / t bukan nomer maka sensor gagal untuk membaca || = OR
+    Serial.println(F("Failed to read from DHT sensor!")); //menampilkan peringatan sensor tidak terbaca
+    return;
+  }
+  //mencetak keluaran sensor
+  Serial.print(F("Humidity: ")); 
+  Serial.print(h);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C "));
+  }
+}
+
+
