@@ -1,0 +1,158 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include "DHT.h"
+#include <Adafruit_Sensor.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+
+#define DHTPIN 14      // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
+
+// Replace with network credentials
+#define WIFISSID "XIAOMI"
+#define WIFIPASS "qwerty73"
+
+
+const char* deviceid = "ID=Test01";
+const char* groupid = "GROUP=Rural_ICT";
+//server to receive the data
+const char* host = "pond.weather.id";
+const int port = 80;
+
+// do not touch below
+unsigned long startTime = millis();
+
+const int watchdog = 10000;  // delay before pushing data
+unsigned long previousMillis = millis();
+
+void connectWifi() {
+  Serial.println("Connecting to access point");
+  WiFi.disconnect();
+  if (WiFi.getMode() != WIFI_STA) {  //WIFI_STA= station mode (connect ke akses point)
+    WiFi.mode(WIFI_STA);
+  }
+  WiFi.begin(WIFISSID, WIFIPASS);
+  //...Give ESP 10 seconds to connect to station.
+  startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+    delay(1000);
+    Serial.print(".");
+  }
+  Serial.println("");
+  // Check Connection
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.print("Wifi connected; IP address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.print("WiFi connect failed to ssid: ");
+    Serial.println(WIFISSID);
+  }
+}
+
+// Set the LCD address to 0x27 for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println(F("DHT22 test!"));
+  dht.begin();
+  lcd.init();
+  lcd.backlight();
+  connectWifi();
+
+  //intro gak penting
+  lcd.setCursor(0, 0);
+  lcd.print("   Temperature");
+  lcd.setCursor(0, 1);
+  lcd.print("     Monitor");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis > watchdog) {
+    previousMillis = currentMillis;
+
+
+    // Wait a few seconds between measurements.
+    delay(1000);
+    // Reading temperature or humidity takes about 250 milliseconds!
+    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+    float h = dht.readHumidity();
+    // Read temperature as Celsius (the default)
+    float t = dht.readTemperature();
+
+    // Check if any reads failed and exit early (to try again).
+    if (isnan(h) || isnan(t)) {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      lcd.setCursor(0, 0);
+      lcd.print("No Sensor!");
+      return;
+    }
+
+    Serial.print(F("Humidity: "));
+    Serial.print(h);
+    Serial.print(F("%  Temperature: "));
+    Serial.print(t);
+    Serial.print(F("°C "));
+
+    //Display data ke LCD =>tampung di data string
+    String print_temp = "Temp: ";
+    print_temp += String(t);
+    print_temp += " C";
+    String print_humd = "Humd: ";
+    print_humd += String(h);
+    print_humd += " %";
+    lcd.setCursor(0, 0);
+    lcd.print(print_temp);
+    lcd.setCursor(0, 1);
+    lcd.print(print_humd);
+
+    WiFiClient client;  //deklarasi method client
+    HTTPClient http;    //deklarasi method http
+
+    if (!client.connect(host, port)) {
+      Serial.print("cannot connect to web server ");
+      Serial.println(host);
+      return;
+    }
+
+    //String url="/weather/poller.php?";
+    String url = "http://";
+    url += host;
+    url += ":";
+    url += port;
+    url += "/?";
+    //url += "ID=YOURID";
+    url += deviceid;
+    url += "&";
+    url += groupid;
+    url += "&temperature=";
+    url += String(t);
+    url += "&humidity=";
+    url += String(h);
+    url += "&softwaretype=RuralICT2024";
+
+    // send it
+
+    client.print(String("GET ") + url + " HTTP/1.1\r\n" + "Host: " + host + "\r\n" + "Connection: close\r\n\r\n");
+
+    // wait for respond
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+      if (millis() - timeout > 5000) {
+        Serial.print("timeout");
+        client.stop();
+        return;
+      }
+    }
+
+    // ok, we got the reply
+    while (client.available()) {
+      String line = client.readStringUntil('\r');
+      Serial.print(line);
+    }
+  }
+}
