@@ -9,11 +9,11 @@
 #define DHTTYPE DHT22  // DHT 22  (AM2302), AM2321
 
 // Replace with network credentials
-#define WIFISSID "XIAOMI"
-#define WIFIPASS "qwerty73"
+#define WIFISSID "Nama WIFI"
+#define WIFIPASS "Password WIFI"
 
 
-const char* deviceid = "ID=Test01";
+const char* deviceid = "ID=Nama daerah";
 const char* groupid = "GROUP=Rural_ICT";
 //server to receive the data
 const char* host = "pond.weather.id";
