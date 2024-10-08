@@ -10,9 +10,9 @@ void setup() {
   lcd.backlight(); //menyalakan backlight
 
   lcd.setCursor(0,0);
-  lcd.print("   LCD ");
+  lcd.print("     LCD ");
   lcd.setCursor(0,1);
-  lcd.print("     Nyala");
+  lcd.print("    Nyala");
   delay(2000);
   lcd.clear();
 }
@@ -26,4 +26,5 @@ void loop(){
   String print_angka = String(counter++);
   lcd.setCursor(0,0);  lcd.print(print_counter);
   lcd.setCursor(0,1);  lcd.print(print_angka);
+  delay(1000);
 }
